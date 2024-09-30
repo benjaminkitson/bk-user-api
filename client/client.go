@@ -34,7 +34,7 @@ func (e ClientError) Error() string {
 	return e.Message
 }
 
-func NewClient(baseURL string) (HTTPClient, error) {
+func NewClient(baseURL string, logger zap.Logger) (HTTPClient, error) {
 	u, err := url.Parse(baseURL)
 	if err != nil {
 		return HTTPClient{}, err
@@ -50,6 +50,7 @@ func NewClient(baseURL string) (HTTPClient, error) {
 		baseURL:   u,
 		client:    c,
 		awsConfig: cfg,
+		logger:    logger,
 	}, nil
 }
 
