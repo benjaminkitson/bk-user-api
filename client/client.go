@@ -22,7 +22,7 @@ type HTTPClient struct {
 	baseURL   *url.URL
 	client    *http.Client
 	awsConfig aws.Config
-	logger    zap.Logger
+	logger    *zap.Logger
 }
 
 type ClientError struct {
@@ -34,7 +34,7 @@ func (e ClientError) Error() string {
 	return e.Message
 }
 
-func NewClient(baseURL string, logger zap.Logger) (HTTPClient, error) {
+func NewClient(baseURL string, logger *zap.Logger) (HTTPClient, error) {
 	u, err := url.Parse(baseURL)
 	if err != nil {
 		return HTTPClient{}, err
