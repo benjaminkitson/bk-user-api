@@ -12,6 +12,7 @@ import (
 	"time"
 
 	"github.com/benjaminkitson/bk-user-api/models/user"
+	"go.uber.org/zap"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/config"
@@ -21,6 +22,7 @@ type HTTPClient struct {
 	baseURL   *url.URL
 	client    *http.Client
 	awsConfig aws.Config
+	logger    zap.Logger
 }
 
 type ClientError struct {
@@ -60,15 +62,19 @@ func (c HTTPClient) CreateUser(ctx context.Context, username string) (user.User,
 	if err != nil {
 		return user.User{}, err
 	}
+	c.logger.Info("building request")
 	req, err := http.NewRequestWithContext(ctx, http.MethodPost, r.String(), body)
 	if err != nil {
 		return user.User{}, err
 	}
+	c.logger.Info("sending request")
 	res, err := c.client.Do(req)
 	if err != nil {
+		c.logger.Error("request error")
 		return user.User{}, err
 	}
 	if res.StatusCode == 200 {
+		c.logger.Info("request success")
 		var u user.User
 		err = json.NewDecoder(res.Body).Decode(&u)
 		if err != nil {
@@ -78,6 +84,7 @@ func (c HTTPClient) CreateUser(ctx context.Context, username string) (user.User,
 	}
 	bodyRes, _ := io.ReadAll(res.Body)
 	if res.StatusCode == 400 || res.StatusCode == 500 {
+		c.logger.Error("error status code received", zap.Int("statusCode", res.StatusCode))
 		return user.User{}, ClientError{StatusCode: res.StatusCode, Message: string(bodyRes)}
 	}
 	err = fmt.Errorf("api responded with unexpected status code %d, with body %s", res.StatusCode, string(bodyRes))
