@@ -1,6 +1,7 @@
 package client
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"fmt"
@@ -53,7 +54,13 @@ func NewClient(baseURL string) (HTTPClient, error) {
 func (c HTTPClient) CreateUser(ctx context.Context, username string) (user.User, error) {
 	r := *c.baseURL
 	r.Path = path.Join(r.Path, "create")
-	req, err := http.NewRequestWithContext(ctx, http.MethodPost, r.String(), nil)
+	bodyMap := map[string]string{"username": username}
+	b, err := json.Marshal(bodyMap)
+	body := bytes.NewReader(b)
+	if err != nil {
+		return user.User{}, err
+	}
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, r.String(), body)
 	if err != nil {
 		return user.User{}, err
 	}
@@ -69,10 +76,10 @@ func (c HTTPClient) CreateUser(ctx context.Context, username string) (user.User,
 		}
 		return u, err
 	}
-	body, _ := io.ReadAll(res.Body)
+	bodyRes, _ := io.ReadAll(res.Body)
 	if res.StatusCode == 400 || res.StatusCode == 500 {
-		return user.User{}, ClientError{StatusCode: res.StatusCode, Message: string(body)}
+		return user.User{}, ClientError{StatusCode: res.StatusCode, Message: string(bodyRes)}
 	}
-	err = fmt.Errorf("api responded with unexpected status code %d, with body %s", res.StatusCode, string(body))
+	err = fmt.Errorf("api responded with unexpected status code %d, with body %s", res.StatusCode, string(bodyRes))
 	return user.User{}, err
 }
