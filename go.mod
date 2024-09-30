@@ -1,4 +1,4 @@
-module github.com/benjaminkitson/user-api
+module github.com/benjaminkitson/bk-user-api
 
 go 1.21
 

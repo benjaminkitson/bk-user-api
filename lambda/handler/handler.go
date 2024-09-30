@@ -6,7 +6,7 @@ import (
 	"fmt"
 
 	"github.com/aws/aws-lambda-go/events"
-	"github.com/benjaminkitson/user-api/db/userstore"
+	"github.com/benjaminkitson/bk-user-api/db/userstore"
 	"github.com/google/uuid"
 	"go.uber.org/zap"
 )

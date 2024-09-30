@@ -4,7 +4,7 @@ import (
 	"context"
 	"testing"
 
-	"github.com/benjaminkitson/user-api/internal/testhelpers"
+	"github.com/benjaminkitson/bk-user-api/internal/testhelpers"
 
 	"github.com/stretchr/testify/require"
 )

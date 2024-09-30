@@ -6,7 +6,7 @@ import (
 
 	"github.com/aws/aws-lambda-go/events"
 	"github.com/aws/aws-lambda-go/lambda"
-	"github.com/benjaminkitson/user-api/lambda/handler"
+	"github.com/benjaminkitson/bk-user-api/lambda/handler"
 	"go.uber.org/zap"
 )
 
