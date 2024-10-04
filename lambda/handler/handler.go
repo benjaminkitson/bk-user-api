@@ -16,9 +16,10 @@ type handler struct {
 	userStore userstore.UserStore
 }
 
-func NewHandler(logger *zap.Logger) (handler, error) {
+func NewHandler(logger *zap.Logger, u userstore.UserStore) (handler, error) {
 	return handler{
-		logger: logger,
+		logger:    logger,
+		userStore: u,
 	}, nil
 }
 
@@ -75,7 +76,7 @@ func (handler handler) createUser(ctx context.Context, requestBody map[string]st
 	id := uuid.New().String()
 
 	user := userstore.User{
-		Username: requestBody["username"],
+		Email: requestBody["email"],
 	}
 
 	err := handler.userStore.Put(ctx, user, id)

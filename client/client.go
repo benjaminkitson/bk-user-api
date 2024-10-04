@@ -54,10 +54,10 @@ func NewClient(baseURL string, logger *zap.Logger) (HTTPClient, error) {
 	}, nil
 }
 
-func (c HTTPClient) CreateUser(ctx context.Context, username string) (user.User, error) {
+func (c HTTPClient) CreateUser(ctx context.Context, email string) (user.User, error) {
 	r := *c.baseURL
 	r.Path = path.Join(r.Path, "create")
-	bodyMap := map[string]string{"username": username}
+	bodyMap := map[string]string{"email": email}
 	b, err := json.Marshal(bodyMap)
 	body := bytes.NewReader(b)
 	if err != nil {

@@ -22,8 +22,7 @@ type testUser struct {
 	Username string
 }
 
-func (d DBTester) CreateLocalTable(t *testing.T) string {
-	tableName := "users"
+func (d DBTester) CreateLocalTable(t *testing.T, tableName string) string {
 	_, err := d.GetTestClient().CreateTable(context.Background(), &dynamodb.CreateTableInput{
 		AttributeDefinitions: []types.AttributeDefinition{
 			{

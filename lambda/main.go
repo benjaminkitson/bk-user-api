@@ -6,6 +6,9 @@ import (
 
 	"github.com/aws/aws-lambda-go/events"
 	"github.com/aws/aws-lambda-go/lambda"
+	"github.com/aws/aws-sdk-go-v2/config"
+	"github.com/aws/aws-sdk-go-v2/service/dynamodb"
+	"github.com/benjaminkitson/bk-user-api/db/userstore"
 	"github.com/benjaminkitson/bk-user-api/lambda/handler"
 	"go.uber.org/zap"
 )
@@ -19,7 +22,19 @@ func main() {
 		}
 		defer logger.Sync()
 
-		h, err := handler.NewHandler(logger)
+		sdkConfig, err := config.LoadDefaultConfig(context.TODO())
+		if err != nil {
+			logger.Error("Failed to intialise SDK config", zap.Error(err))
+			return events.APIGatewayProxyResponse{}, err
+		}
+
+		d := dynamodb.NewFromConfig(sdkConfig)
+
+		tableName := "userTable"
+
+		u := userstore.NewUserStore(d, tableName)
+
+		h, err := handler.NewHandler(logger, u)
 		if err != nil {
 			return events.APIGatewayProxyResponse{}, err
 		}

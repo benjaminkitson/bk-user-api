@@ -39,11 +39,14 @@ func NewStack(scope constructs.Construct, id string, props *StackProps) awscdk.S
 		Timeout:    awscdk.Duration_Minutes(jsii.Number(5)),
 	})
 
+	const PartitionKeyName = "_pk"
+
 	userDb := awsdynamodb.NewTable(stack, jsii.String("userTable"), &awsdynamodb.TableProps{
 		PartitionKey: &awsdynamodb.Attribute{
-			Name: jsii.String("id"),
+			Name: jsii.String("_pk"),
 			Type: awsdynamodb.AttributeType_STRING,
 		},
+		TableName:   jsii.String("userTable"),
 		BillingMode: awsdynamodb.BillingMode_PAY_PER_REQUEST,
 	})
 

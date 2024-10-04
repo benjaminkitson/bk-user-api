@@ -12,12 +12,12 @@ import (
 )
 
 const (
-	pkKey string = "_pk"
-	skKey string = "_sk"
+	PKKey string = "_pk"
+	SKKey string = "_sk"
 )
 
 type User struct {
-	Username string
+	Email string
 }
 
 type UserStore struct {
@@ -25,17 +25,17 @@ type UserStore struct {
 	client    *dynamodb.Client
 }
 
-func NewUserStore(client *dynamodb.Client) UserStore {
+func NewUserStore(client *dynamodb.Client, tableName string) UserStore {
 	return UserStore{
-		tableName: "users",
+		tableName: tableName,
 		client:    client,
 	}
 }
 
 func (store UserStore) Get(ctx context.Context, id string) (user User, err error) {
 	key := map[string]types.AttributeValue{
-		pkKey: &types.AttributeValueMemberS{Value: store.getUserPK(id)},
-		skKey: &types.AttributeValueMemberS{Value: store.getUserSK(id)},
+		PKKey: &types.AttributeValueMemberS{Value: store.getUserPK(id)},
+		SKKey: &types.AttributeValueMemberS{Value: store.getUserSK(id)},
 	}
 	query := dynamodb.GetItemInput{
 		TableName:      &store.tableName,
@@ -67,8 +67,8 @@ func (store UserStore) Put(ctx context.Context, record User, id string) (err err
 		return errors.Wrap(err, "an error ocurred marshaling the record")
 	}
 
-	item[pkKey] = &types.AttributeValueMemberS{Value: store.getUserPK(id)}
-	item[skKey] = &types.AttributeValueMemberS{Value: store.getUserSK(id)}
+	item[PKKey] = &types.AttributeValueMemberS{Value: store.getUserPK(id)}
+	item[SKKey] = &types.AttributeValueMemberS{Value: store.getUserSK(id)}
 
 	_, err = store.client.PutItem(ctx, &dynamodb.PutItemInput{
 		Item:      item,
