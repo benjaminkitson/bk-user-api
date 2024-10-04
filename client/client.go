@@ -11,7 +11,7 @@ import (
 	"path"
 	"time"
 
-	"github.com/benjaminkitson/bk-user-api/models/user"
+	"github.com/benjaminkitson/bk-user-api/db/userstore"
 	"go.uber.org/zap"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
@@ -54,40 +54,40 @@ func NewClient(baseURL string, logger *zap.Logger) (HTTPClient, error) {
 	}, nil
 }
 
-func (c HTTPClient) CreateUser(ctx context.Context, email string) (user.User, error) {
+func (c HTTPClient) CreateUser(ctx context.Context, email string) (userstore.User, error) {
 	r := *c.baseURL
 	r.Path = path.Join(r.Path, "create")
 	bodyMap := map[string]string{"email": email}
 	b, err := json.Marshal(bodyMap)
 	body := bytes.NewReader(b)
 	if err != nil {
-		return user.User{}, err
+		return userstore.User{}, err
 	}
 	c.logger.Info("building request")
 	req, err := http.NewRequestWithContext(ctx, http.MethodPost, r.String(), body)
 	if err != nil {
-		return user.User{}, err
+		return userstore.User{}, err
 	}
 	c.logger.Info("sending request")
 	res, err := c.client.Do(req)
 	if err != nil {
 		c.logger.Error("request error")
-		return user.User{}, err
+		return userstore.User{}, err
 	}
 	if res.StatusCode == 200 {
 		c.logger.Info("request success")
-		var u user.User
+		var u userstore.User
 		err = json.NewDecoder(res.Body).Decode(&u)
 		if err != nil {
-			return user.User{}, err
+			return userstore.User{}, err
 		}
 		return u, err
 	}
 	bodyRes, _ := io.ReadAll(res.Body)
 	if res.StatusCode == 400 || res.StatusCode == 500 {
 		c.logger.Error("error status code received", zap.Int("statusCode", res.StatusCode))
-		return user.User{}, ClientError{StatusCode: res.StatusCode, Message: string(bodyRes)}
+		return userstore.User{}, ClientError{StatusCode: res.StatusCode, Message: string(bodyRes)}
 	}
 	err = fmt.Errorf("api responded with unexpected status code %d, with body %s", res.StatusCode, string(bodyRes))
-	return user.User{}, err
+	return userstore.User{}, err
 }
