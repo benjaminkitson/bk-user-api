@@ -53,7 +53,7 @@ func (handler handler) Handle(ctx context.Context, request events.APIGatewayProx
 		}, fmt.Errorf("error parsing request body")
 	}
 
-	if request.Path == "/create" {
+	if request.Path == "/user/create" {
 		u, err := handler.createUser(ctx, bodyMap)
 		if err != nil {
 			handler.logger.Error("Failed to get create new user", zap.Error(err))
@@ -78,12 +78,12 @@ func (handler handler) Handle(ctx context.Context, request events.APIGatewayProx
 		}, nil
 	}
 
-	handler.logger.Error("invalid path")
+	handler.logger.Error("invalid path", zap.String("path", request.Path))
 	return events.APIGatewayProxyResponse{
-		StatusCode: 500,
+		StatusCode: 400,
 		Headers:    Headers,
-		// Error body needed? Probably not
-	}, fmt.Errorf("invalid path")
+		Body:       "{\"message\": \"Invalid path\"}",
+	}, nil
 }
 
 func (handler handler) createUser(ctx context.Context, requestBody map[string]string) (models.User, error) {

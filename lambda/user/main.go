@@ -9,7 +9,7 @@ import (
 	"github.com/aws/aws-sdk-go-v2/config"
 	"github.com/aws/aws-sdk-go-v2/service/dynamodb"
 	"github.com/benjaminkitson/bk-user-api/db/userstore"
-	"github.com/benjaminkitson/bk-user-api/lambda/handler"
+	"github.com/benjaminkitson/bk-user-api/lambda/user/handler"
 	"go.uber.org/zap"
 )
 

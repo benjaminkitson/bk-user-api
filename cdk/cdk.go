@@ -19,14 +19,8 @@ type StackProps struct {
 	awscdk.StackProps
 }
 
-func NewStack(scope constructs.Construct, id string, props *StackProps) awscdk.Stack {
-	var sprops awscdk.StackProps
-	if props != nil {
-		sprops = props.StackProps
-	}
-	stack := awscdk.NewStack(scope, &id, &sprops)
-
-	userLambda := awslambdago.NewGoFunction(stack, jsii.String("userHandler"), &awslambdago.GoFunctionProps{
+func NewDefaultLambdaProps(path string) *awslambdago.GoFunctionProps {
+	return &awslambdago.GoFunctionProps{
 		Architecture: awslambda.Architecture_ARM_64(),
 		Description:  jsii.String("Handler for user API"),
 		Tracing:      awslambda.Tracing_ACTIVE,
@@ -34,12 +28,24 @@ func NewStack(scope constructs.Construct, id string, props *StackProps) awscdk.S
 			GoBuildFlags: jsii.Strings(`-trimpath -buildvcs=false`),
 		},
 		Runtime:    awslambda.Runtime_PROVIDED_AL2(),
-		Entry:      jsii.String("../lambda"),
+		Entry:      jsii.String(path),
 		MemorySize: jsii.Number(256),
-		Timeout:    awscdk.Duration_Minutes(jsii.Number(5)),
-	})
+		Timeout:    awscdk.Duration_Minutes(jsii.Number(1)),
+	}
+}
 
-	const PartitionKeyName = "_pk"
+func NewStack(scope constructs.Construct, id string, props *StackProps) awscdk.Stack {
+	var sprops awscdk.StackProps
+	if props != nil {
+		sprops = props.StackProps
+	}
+	stack := awscdk.NewStack(scope, &id, &sprops)
+
+	fallbackLambdaProps := NewDefaultLambdaProps("../lambda/fallback")
+	fallbackLambda := awslambdago.NewGoFunction(stack, jsii.String("fallbackHandler"), fallbackLambdaProps)
+
+	userLambdaProps := NewDefaultLambdaProps("../lambda/user")
+	userLambda := awslambdago.NewGoFunction(stack, jsii.String("userHandler"), userLambdaProps)
 
 	userDb := awsdynamodb.NewTable(stack, jsii.String("userTable"), &awsdynamodb.TableProps{
 		PartitionKey: &awsdynamodb.Attribute{
@@ -63,11 +69,20 @@ func NewStack(scope constructs.Construct, id string, props *StackProps) awscdk.S
 		},
 		DisableExecuteApiEndpoint: jsii.Bool(true),
 		RestApiName:               jsii.String("bk-api"),
+		Handler:                   fallbackLambda,
+		Proxy:                     jsii.Bool(false),
 	})
 
-	users := userApi.Root().AddResource(jsii.String("users"), &awsapigateway.ResourceOptions{})
+	users := userApi.Root().AddResource(jsii.String("user"), &awsapigateway.ResourceOptions{})
 
-	users.AddMethod(jsii.String("POST"), awsapigateway.NewLambdaIntegration(userLambda, &awsapigateway.LambdaIntegrationOptions{}), &awsapigateway.MethodOptions{
+	// users.AddMethod(jsii.String("ANY"), awsapigateway.NewLambdaIntegration(fallbackLambda, &awsapigateway.LambdaIntegrationOptions{}), &awsapigateway.MethodOptions{})
+
+	proxy := users.AddProxy(&awsapigateway.ProxyResourceOptions{
+		DefaultIntegration: awsapigateway.NewLambdaIntegration(fallbackLambda, &awsapigateway.LambdaIntegrationOptions{}),
+		AnyMethod:          jsii.Bool(false),
+	})
+
+	proxy.AddMethod(jsii.String("POST"), awsapigateway.NewLambdaIntegration(userLambda, &awsapigateway.LambdaIntegrationOptions{}), &awsapigateway.MethodOptions{
 		AuthorizationType: awsapigateway.AuthorizationType_IAM,
 	})
 
@@ -81,6 +96,7 @@ func NewStack(scope constructs.Construct, id string, props *StackProps) awscdk.S
 		Target:     awsroute53.RecordTarget_FromAlias(awsroute53targets.NewApiGateway(userApi)),
 	})
 
+	// TODO: Eventually ascertain if the below is really needed
 	// awscloudfront.NewDistribution(stack, jsii.String("myDist"), &awscloudfront.DistributionProps{
 	// 	DefaultBehavior: &awscloudfront.BehaviorOptions{
 	// 		Origin: awscloudfrontorigins.NewRestApiOrigin(pokedexApi, &awscloudfrontorigins.RestApiOriginProps{}),

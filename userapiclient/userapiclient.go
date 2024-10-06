@@ -11,15 +11,19 @@ import (
 	"path"
 	"time"
 
+	"github.com/aws/aws-sdk-go-v2/aws"
+	v4 "github.com/aws/aws-sdk-go-v2/aws/signer/v4"
+	"github.com/aws/aws-sdk-go-v2/config"
 	"github.com/benjaminkitson/bk-user-api/models"
 	"go.uber.org/zap"
 )
 
 type HTTPClient struct {
-	baseURL *url.URL
-	client  *http.Client
-	// awsConfig aws.Config
-	logger *zap.Logger
+	baseURL       *url.URL
+	client        *http.Client
+	awsConfig     aws.Config
+	logger        *zap.Logger
+	requestSigner *v4.Signer
 }
 
 type ClientError struct {
@@ -36,18 +40,20 @@ func NewClient(baseURL string, logger *zap.Logger) (HTTPClient, error) {
 	if err != nil {
 		return HTTPClient{}, err
 	}
-	// cfg, err := config.LoadDefaultConfig(context.Background())
-	// if err != nil {
-	// 	return HTTPClient{}, err
-	// }
+	cfg, err := config.LoadDefaultConfig(context.Background())
+	if err != nil {
+		return HTTPClient{}, err
+	}
 	c := &http.Client{
 		Timeout: 10 * time.Second,
 	}
+	s := v4.NewSigner()
 	return HTTPClient{
-		baseURL: u,
-		client:  c,
-		// awsConfig: cfg,
-		logger: logger,
+		baseURL:       u,
+		client:        c,
+		awsConfig:     cfg,
+		logger:        logger,
+		requestSigner: s,
 	}, nil
 }
 
@@ -60,11 +66,22 @@ func (c HTTPClient) CreateUser(ctx context.Context, email string) (models.User, 
 	if err != nil {
 		return models.User{}, err
 	}
+
 	c.logger.Info("building request")
 	req, err := http.NewRequestWithContext(ctx, http.MethodPost, r.String(), body)
 	if err != nil {
 		return models.User{}, err
 	}
+
+	// creds, err := c.awsConfig.Credentials.Retrieve(ctx)
+	// if err != nil {
+	// 	return models.User{}, err
+	// }
+
+	// h := sha256.Sum256(b)
+	// s := string(h[:])
+	// c.requestSigner.SignHTTP(ctx, creds, req, s, "execute-api", "eu-west-2", time.Now())
+
 	c.logger.Info("sending request")
 	res, err := c.client.Do(req)
 	if err != nil {
