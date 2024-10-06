@@ -3,6 +3,7 @@ package userapiclient
 import (
 	"bytes"
 	"context"
+	"crypto/sha256"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -73,14 +74,14 @@ func (c HTTPClient) CreateUser(ctx context.Context, email string) (models.User, 
 		return models.User{}, err
 	}
 
-	// creds, err := c.awsConfig.Credentials.Retrieve(ctx)
-	// if err != nil {
-	// 	return models.User{}, err
-	// }
+	creds, err := c.awsConfig.Credentials.Retrieve(ctx)
+	if err != nil {
+		return models.User{}, err
+	}
 
-	// h := sha256.Sum256(b)
-	// s := string(h[:])
-	// c.requestSigner.SignHTTP(ctx, creds, req, s, "execute-api", "eu-west-2", time.Now())
+	h := sha256.Sum256(b)
+	s := string(h[:])
+	c.requestSigner.SignHTTP(ctx, creds, req, s, "execute-api", "eu-west-2", time.Now())
 
 	c.logger.Info("sending request")
 	res, err := c.client.Do(req)
