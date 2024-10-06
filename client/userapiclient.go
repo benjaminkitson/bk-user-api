@@ -1,4 +1,4 @@
-package client
+package userapiclient
 
 import (
 	"bytes"
@@ -11,18 +11,15 @@ import (
 	"path"
 	"time"
 
-	"github.com/benjaminkitson/bk-user-api/db/userstore"
+	"github.com/benjaminkitson/bk-user-api/models"
 	"go.uber.org/zap"
-
-	"github.com/aws/aws-sdk-go-v2/aws"
-	"github.com/aws/aws-sdk-go-v2/config"
 )
 
 type HTTPClient struct {
-	baseURL   *url.URL
-	client    *http.Client
-	awsConfig aws.Config
-	logger    *zap.Logger
+	baseURL *url.URL
+	client  *http.Client
+	// awsConfig aws.Config
+	logger *zap.Logger
 }
 
 type ClientError struct {
@@ -39,55 +36,55 @@ func NewClient(baseURL string, logger *zap.Logger) (HTTPClient, error) {
 	if err != nil {
 		return HTTPClient{}, err
 	}
-	cfg, err := config.LoadDefaultConfig(context.Background())
-	if err != nil {
-		return HTTPClient{}, err
-	}
+	// cfg, err := config.LoadDefaultConfig(context.Background())
+	// if err != nil {
+	// 	return HTTPClient{}, err
+	// }
 	c := &http.Client{
 		Timeout: 10 * time.Second,
 	}
 	return HTTPClient{
-		baseURL:   u,
-		client:    c,
-		awsConfig: cfg,
-		logger:    logger,
+		baseURL: u,
+		client:  c,
+		// awsConfig: cfg,
+		logger: logger,
 	}, nil
 }
 
-func (c HTTPClient) CreateUser(ctx context.Context, email string) (userstore.User, error) {
+func (c HTTPClient) CreateUser(ctx context.Context, email string) (models.User, error) {
 	r := *c.baseURL
 	r.Path = path.Join(r.Path, "create")
 	bodyMap := map[string]string{"email": email}
 	b, err := json.Marshal(bodyMap)
 	body := bytes.NewReader(b)
 	if err != nil {
-		return userstore.User{}, err
+		return models.User{}, err
 	}
 	c.logger.Info("building request")
 	req, err := http.NewRequestWithContext(ctx, http.MethodPost, r.String(), body)
 	if err != nil {
-		return userstore.User{}, err
+		return models.User{}, err
 	}
 	c.logger.Info("sending request")
 	res, err := c.client.Do(req)
 	if err != nil {
 		c.logger.Error("request error")
-		return userstore.User{}, err
+		return models.User{}, err
 	}
 	if res.StatusCode == 200 {
 		c.logger.Info("request success")
-		var u userstore.User
+		var u models.User
 		err = json.NewDecoder(res.Body).Decode(&u)
 		if err != nil {
-			return userstore.User{}, err
+			return models.User{}, err
 		}
 		return u, err
 	}
 	bodyRes, _ := io.ReadAll(res.Body)
 	if res.StatusCode == 400 || res.StatusCode == 500 {
 		c.logger.Error("error status code received", zap.Int("statusCode", res.StatusCode))
-		return userstore.User{}, ClientError{StatusCode: res.StatusCode, Message: string(bodyRes)}
+		return models.User{}, ClientError{StatusCode: res.StatusCode, Message: string(bodyRes)}
 	}
 	err = fmt.Errorf("api responded with unexpected status code %d, with body %s", res.StatusCode, string(bodyRes))
-	return userstore.User{}, err
+	return models.User{}, err
 }

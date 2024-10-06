@@ -8,6 +8,7 @@ import (
 	"github.com/aws/aws-sdk-go-v2/feature/dynamodb/attributevalue"
 	"github.com/aws/aws-sdk-go-v2/service/dynamodb"
 	"github.com/aws/aws-sdk-go-v2/service/dynamodb/types"
+	"github.com/benjaminkitson/bk-user-api/models"
 	"github.com/pkg/errors"
 )
 
@@ -15,10 +16,6 @@ const (
 	PKKey string = "_pk"
 	SKKey string = "_sk"
 )
-
-type User struct {
-	Email string
-}
 
 type UserStore struct {
 	tableName string
@@ -32,7 +29,7 @@ func NewUserStore(client *dynamodb.Client, tableName string) UserStore {
 	}
 }
 
-func (store UserStore) Get(ctx context.Context, id string) (user User, err error) {
+func (store UserStore) Get(ctx context.Context, id string) (user models.User, err error) {
 	key := map[string]types.AttributeValue{
 		PKKey: &types.AttributeValueMemberS{Value: store.getUserPK(id)},
 		SKKey: &types.AttributeValueMemberS{Value: store.getUserSK(id)},
@@ -49,7 +46,7 @@ func (store UserStore) Get(ctx context.Context, id string) (user User, err error
 	}
 
 	if len(item.Item) == 0 {
-		user = User{}
+		user = models.User{}
 		return
 	}
 
@@ -61,10 +58,10 @@ func (store UserStore) Get(ctx context.Context, id string) (user User, err error
 	return
 }
 
-func (store UserStore) Put(ctx context.Context, record User, id string) (err error) {
+func (store UserStore) Put(ctx context.Context, record models.User, id string) (models.User, error) {
 	item, err := attributevalue.MarshalMap(record)
 	if err != nil {
-		return errors.Wrap(err, "an error ocurred marshaling the record")
+		return models.User{}, errors.Wrap(err, "an error ocurred marshaling the record")
 	}
 
 	item[PKKey] = &types.AttributeValueMemberS{Value: store.getUserPK(id)}
@@ -76,10 +73,10 @@ func (store UserStore) Put(ctx context.Context, record User, id string) (err err
 	})
 
 	if err != nil {
-		return err
+		return models.User{}, err
 	}
 
-	return
+	return record, err
 }
 
 func (store UserStore) getUserPK(policyId string) (_pk string) {

@@ -2,12 +2,13 @@ package userstore
 
 import (
 	"context"
-	"fmt"
 	"testing"
 
 	"github.com/benjaminkitson/bk-user-api/internal/testhelpers"
+	"github.com/benjaminkitson/bk-user-api/models"
 	"github.com/google/uuid"
 
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
@@ -35,16 +36,17 @@ func TestPutUser(t *testing.T) {
 	ctx := context.Background()
 	store := NewStore(t)
 	id := uuid.New().String()
+	email := "someother@gmail.com"
 
-	fmt.Println(id)
-
-	err := store.Put(ctx, User{Email: "someother@gmail.com"}, id)
+	u, err := store.Put(ctx, models.User{Email: email}, id)
 	require.NoError(t, err)
 
 	r, err := store.Get(ctx, id)
 	require.NoError(t, err)
 
-	if r.Email != "user2" {
+	assert.Equal(t, email, u.Email)
+
+	if r.Email != email {
 		t.Fatalf("Expected username to be user2, got %v", r.Email)
 	}
 }

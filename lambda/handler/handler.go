@@ -6,17 +6,22 @@ import (
 	"fmt"
 
 	"github.com/aws/aws-lambda-go/events"
-	"github.com/benjaminkitson/bk-user-api/db/userstore"
+	"github.com/benjaminkitson/bk-user-api/models"
 	"github.com/google/uuid"
 	"go.uber.org/zap"
 )
 
 type handler struct {
 	logger    *zap.Logger
-	userStore userstore.UserStore
+	userStore handlerUserStore
 }
 
-func NewHandler(logger *zap.Logger, u userstore.UserStore) (handler, error) {
+type handlerUserStore interface {
+	Get(ctx context.Context, id string) (models.User, error)
+	Put(ctx context.Context, record models.User, id string) (models.User, error)
+}
+
+func NewHandler(logger *zap.Logger, u handlerUserStore) (handler, error) {
 	return handler{
 		logger:    logger,
 		userStore: u,
@@ -49,9 +54,17 @@ func (handler handler) Handle(ctx context.Context, request events.APIGatewayProx
 	}
 
 	if request.Path == "/create" {
-		err := handler.createUser(ctx, bodyMap)
+		u, err := handler.createUser(ctx, bodyMap)
 		if err != nil {
 			handler.logger.Error("Failed to get create new user", zap.Error(err))
+			return events.APIGatewayProxyResponse{
+				StatusCode: 500,
+				Headers:    Headers,
+				Body:       GenericError,
+			}, nil
+		}
+		r, err := json.Marshal(u)
+		if err != nil {
 			return events.APIGatewayProxyResponse{
 				StatusCode: 500,
 				Headers:    Headers,
@@ -61,6 +74,7 @@ func (handler handler) Handle(ctx context.Context, request events.APIGatewayProx
 		return events.APIGatewayProxyResponse{
 			StatusCode: 200,
 			Headers:    Headers,
+			Body:       string(r),
 		}, nil
 	}
 
@@ -72,13 +86,17 @@ func (handler handler) Handle(ctx context.Context, request events.APIGatewayProx
 	}, fmt.Errorf("invalid path")
 }
 
-func (handler handler) createUser(ctx context.Context, requestBody map[string]string) error {
+func (handler handler) createUser(ctx context.Context, requestBody map[string]string) (models.User, error) {
 	id := uuid.New().String()
 
-	user := userstore.User{
+	user := models.User{
 		Email: requestBody["email"],
 	}
 
-	err := handler.userStore.Put(ctx, user, id)
-	return err
+	u, err := handler.userStore.Put(ctx, user, id)
+	if err != nil {
+		return models.User{}, err
+	}
+
+	return u, err
 }
