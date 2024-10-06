@@ -52,7 +52,7 @@ func NewStack(scope constructs.Construct, id string, props *StackProps) awscdk.S
 
 	userDb.GrantReadWriteData(userLambda)
 
-	authApi := awsapigateway.NewLambdaRestApi(stack, jsii.String("Endpoint"), &awsapigateway.LambdaRestApiProps{
+	userApi := awsapigateway.NewLambdaRestApi(stack, jsii.String("Endpoint"), &awsapigateway.LambdaRestApiProps{
 		DomainName: &awsapigateway.DomainNameOptions{
 			DomainName: jsii.String("api.benjaminkitson.com"),
 			Certificate: awscertificatemanager.Certificate_FromCertificateArn(
@@ -63,7 +63,12 @@ func NewStack(scope constructs.Construct, id string, props *StackProps) awscdk.S
 		},
 		DisableExecuteApiEndpoint: jsii.Bool(true),
 		RestApiName:               jsii.String("bk-api"),
-		Handler:                   userLambda,
+	})
+
+	users := userApi.Root().AddResource(jsii.String("users"), &awsapigateway.ResourceOptions{})
+
+	users.AddMethod(jsii.String("POST"), awsapigateway.NewLambdaIntegration(userLambda, &awsapigateway.LambdaIntegrationOptions{}), &awsapigateway.MethodOptions{
+		AuthorizationType: awsapigateway.AuthorizationType_IAM,
 	})
 
 	z := awsroute53.HostedZone_FromLookup(stack, jsii.String("zone"), &awsroute53.HostedZoneProviderProps{
@@ -73,7 +78,7 @@ func NewStack(scope constructs.Construct, id string, props *StackProps) awscdk.S
 	awsroute53.NewARecord(stack, jsii.String("apiRecord"), &awsroute53.ARecordProps{
 		Zone:       z,
 		RecordName: jsii.String("api"),
-		Target:     awsroute53.RecordTarget_FromAlias(awsroute53targets.NewApiGateway(authApi)),
+		Target:     awsroute53.RecordTarget_FromAlias(awsroute53targets.NewApiGateway(userApi)),
 	})
 
 	// awscloudfront.NewDistribution(stack, jsii.String("myDist"), &awscloudfront.DistributionProps{
