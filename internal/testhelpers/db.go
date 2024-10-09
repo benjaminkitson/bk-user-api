@@ -12,14 +12,11 @@ import (
 	"github.com/aws/aws-sdk-go-v2/feature/dynamodb/attributevalue"
 	"github.com/aws/aws-sdk-go-v2/service/dynamodb"
 	"github.com/aws/aws-sdk-go-v2/service/dynamodb/types"
+	"github.com/benjaminkitson/bk-user-api/models"
 )
 
 type DBTester struct {
 	testClient *dynamodb.Client
-}
-
-type testUser struct {
-	Username string
 }
 
 func (d DBTester) CreateLocalTable(t *testing.T, tableName string) string {
@@ -31,6 +28,10 @@ func (d DBTester) CreateLocalTable(t *testing.T, tableName string) string {
 			},
 			{
 				AttributeName: aws.String("_sk"),
+				AttributeType: types.ScalarAttributeTypeS,
+			},
+			{
+				AttributeName: aws.String("email"),
 				AttributeType: types.ScalarAttributeTypeS,
 			},
 		},
@@ -46,6 +47,18 @@ func (d DBTester) CreateLocalTable(t *testing.T, tableName string) string {
 		},
 		BillingMode: types.BillingModePayPerRequest,
 		TableName:   aws.String(tableName),
+		GlobalSecondaryIndexes: []types.GlobalSecondaryIndex{
+			{
+				IndexName: aws.String("email"),
+				KeySchema: []types.KeySchemaElement{
+					{
+						AttributeName: aws.String("email"),
+						KeyType:       types.KeyTypeHash,
+					},
+				},
+				Projection: &types.Projection{ProjectionType: types.ProjectionTypeAll},
+			},
+		},
 	})
 	if err != nil {
 		t.Fatalf("failed to create local table: %v", err)
@@ -53,8 +66,8 @@ func (d DBTester) CreateLocalTable(t *testing.T, tableName string) string {
 
 	userID := "12345"
 
-	testUser := testUser{
-		Username: "benk13",
+	testUser := models.User{
+		Email: "benk13@gmail.com",
 	}
 
 	item, err := attributevalue.MarshalMap(testUser)
@@ -76,12 +89,12 @@ func (d DBTester) CreateLocalTable(t *testing.T, tableName string) string {
 	return tableName
 }
 
-func (store DBTester) getUserPK(policyId string) (_pk string) {
-	return fmt.Sprintf("user/%s", policyId)
+func (store DBTester) getUserPK(userId string) (_pk string) {
+	return fmt.Sprintf("user/%s", userId)
 }
 
-func (store DBTester) getUserSK(policyId string) (_pk string) {
-	return policyId
+func (store DBTester) getUserSK(userId string) (_pk string) {
+	return userId
 }
 
 func (d DBTester) DeleteLocalTable(t *testing.T, name string) {

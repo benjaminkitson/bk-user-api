@@ -56,6 +56,14 @@ func NewStack(scope constructs.Construct, id string, props *StackProps) awscdk.S
 		BillingMode: awsdynamodb.BillingMode_PAY_PER_REQUEST,
 	})
 
+	userDb.AddGlobalSecondaryIndex(&awsdynamodb.GlobalSecondaryIndexProps{
+		IndexName: jsii.String("email"),
+		PartitionKey: &awsdynamodb.Attribute{
+			Name: jsii.String("email"),
+			Type: awsdynamodb.AttributeType_STRING,
+		},
+	})
+
 	userDb.GrantReadWriteData(userLambda)
 
 	userApi := awsapigateway.NewLambdaRestApi(stack, jsii.String("Endpoint"), &awsapigateway.LambdaRestApiProps{

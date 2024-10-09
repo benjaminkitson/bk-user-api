@@ -21,15 +21,30 @@ func NewStore(t *testing.T) UserStore {
 	return NewUserStore(client, testTableName)
 }
 
-func TestGetUser(t *testing.T) {
+func TestGetUserByID(t *testing.T) {
 	ctx := context.Background()
 	store := NewStore(t)
-	r, err := store.Get(ctx, "12345")
+	r, err := store.GetByID(ctx, "12345")
 	require.NoError(t, err)
 
 	if r.Email != "benk13@gmail.com" {
-		t.Fatalf("Expected username to be benk13@gmail.com, got %v", r.Email)
+		t.Fatalf("Expected email to be benk13@gmail.com, got %v", r.Email)
 	}
+}
+
+func TestGetUserByEmail(t *testing.T) {
+	ctx := context.Background()
+	store := NewStore(t)
+	expectedEmail := "benk13@gmail.com"
+	r, err := store.GetByEmail(ctx, expectedEmail)
+	require.NoError(t, err)
+
+	if r.Email != expectedEmail {
+		t.Fatalf("Expected email to be benk13@gmail.com, got %v", r.Email)
+	}
+
+	_, err = store.GetByEmail(ctx, "nonexistent@gmail.com")
+
 }
 
 func TestPutUser(t *testing.T) {
@@ -41,7 +56,7 @@ func TestPutUser(t *testing.T) {
 	u, err := store.Put(ctx, models.User{Email: email}, id)
 	require.NoError(t, err)
 
-	r, err := store.Get(ctx, id)
+	r, err := store.GetByID(ctx, id)
 	require.NoError(t, err)
 
 	assert.Equal(t, email, u.Email)

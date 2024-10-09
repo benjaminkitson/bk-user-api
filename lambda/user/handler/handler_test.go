@@ -14,7 +14,12 @@ type mockUserStore struct {
 	isError bool
 }
 
-func (m mockUserStore) Get(ctx context.Context, id string) (user models.User, err error) {
+func (m mockUserStore) GetByID(ctx context.Context, id string) (user models.User, err error) {
+	return models.User{}, nil
+}
+
+// TODO: when a user already exists, GetByEmail error
+func (m mockUserStore) GetByEmail(ctx context.Context, email string) (user models.User, err error) {
 	return models.User{}, nil
 }
 
@@ -42,13 +47,13 @@ func TestHandler(t *testing.T) {
 		{
 			Name:               "Successfully create user",
 			RequestBody:        "{\"email\": \"abc@gmail.com\"}",
-			RequestPath:        "/create",
+			RequestPath:        "/user/create",
 			ExpectedStatusCode: 200,
 		},
 		{
 			Name:                   "Failed to create user",
 			RequestBody:            "{\"email\": \"abc@gmail.com\"}",
-			RequestPath:            "/create",
+			RequestPath:            "/user/create",
 			ExpectedStatusCode:     500,
 			StoreError:             true,
 			IsHandlerErrorExpected: true,

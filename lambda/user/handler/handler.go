@@ -17,7 +17,8 @@ type handler struct {
 }
 
 type handlerUserStore interface {
-	Get(ctx context.Context, id string) (models.User, error)
+	GetByID(ctx context.Context, id string) (models.User, error)
+	GetByEmail(ctx context.Context, email string) (models.User, error)
 	Put(ctx context.Context, record models.User, id string) (models.User, error)
 }
 
@@ -91,6 +92,17 @@ func (handler handler) createUser(ctx context.Context, requestBody map[string]st
 
 	user := models.User{
 		Email: requestBody["email"],
+	}
+
+	c, err := handler.userStore.GetByEmail(ctx, requestBody["email"])
+	if err != nil {
+		handler.logger.Error("error checking for existing user by email")
+		return models.User{}, err
+	}
+
+	if c.Email != "" {
+		handler.logger.Error("user with email already exists")
+		return models.User{}, fmt.Errorf("user with email already exists")
 	}
 
 	u, err := handler.userStore.Put(ctx, user, id)
