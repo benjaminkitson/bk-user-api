@@ -6,7 +6,6 @@ import (
 	"fmt"
 
 	"github.com/aws/aws-lambda-go/events"
-	"github.com/benjaminkitson/bk-user-api/models"
 	utils "github.com/benjaminkitson/bk-user-api/utils/lambda"
 	"go.uber.org/zap"
 )
@@ -17,7 +16,7 @@ type handler struct {
 }
 
 type handlerUserStore interface {
-	Delete(ctx context.Context, id string) (models.User, error)
+	Delete(ctx context.Context, id string) (string, error)
 }
 
 func NewHandler(logger *zap.Logger, u handlerUserStore) (handler, error) {

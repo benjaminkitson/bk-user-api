@@ -2,10 +2,10 @@ package handler
 
 import (
 	"context"
+	"fmt"
 	"testing"
 
 	"github.com/aws/aws-lambda-go/events"
-	"github.com/benjaminkitson/bk-user-api/models"
 	"go.uber.org/zap"
 )
 
@@ -13,8 +13,11 @@ type mockUserStore struct {
 	isError bool
 }
 
-func (m mockUserStore) Delete(ctx context.Context, id string) (user models.User, err error) {
-	return models.User{}, nil
+func (m mockUserStore) Delete(ctx context.Context, id string) (string, error) {
+	if m.isError {
+		return "", fmt.Errorf("User store error")
+	}
+	return id, nil
 }
 
 /*
@@ -33,12 +36,12 @@ func TestHandler(t *testing.T) {
 	tests := []test{
 		{
 			Name:               "Successfully delete user",
-			RequestBody:        "{\"email\": \"abc@gmail.com\"}",
+			RequestBody:        "{\"id\": \"12345\"}",
 			ExpectedStatusCode: 200,
 		},
 		{
-			Name:                   "Failed to create user",
-			RequestBody:            "{\"email\": \"abc@gmail.com\"}",
+			Name:                   "Failed to delete user",
+			RequestBody:            "{\"id\": \"23456\"}",
 			ExpectedStatusCode:     500,
 			StoreError:             true,
 			IsHandlerErrorExpected: true,
@@ -73,7 +76,7 @@ func TestHandler(t *testing.T) {
 			}
 
 			if r.StatusCode != tt.ExpectedStatusCode {
-				t.Fatalf("Expected Status Code to be %v", tt.ExpectedStatusCode)
+				t.Fatalf("Expected Status Code to be %v, got %v", tt.ExpectedStatusCode, r.StatusCode)
 			}
 		})
 	}
