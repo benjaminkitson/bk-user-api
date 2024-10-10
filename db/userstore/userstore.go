@@ -109,10 +109,27 @@ func (store UserStore) Put(ctx context.Context, record models.User, id string) (
 	return record, err
 }
 
-func (store UserStore) getUserPK(userId string) (_pk string) {
-	return fmt.Sprintf("user/%s", userId)
+func (store UserStore) Delete(ctx context.Context, email string) (string, error) {
+	// TODO: ascertain if these attributes are needed
+	_, err := store.client.DeleteItem(ctx, &dynamodb.DeleteItemInput{
+		TableName: aws.String(store.tableName),
+		Key: map[string]types.AttributeValue{
+			// PKKey: &types.AttributeValueMemberS{Value: store.getUserPK(id)},
+			// SKKey: &types.AttributeValueMemberS{Value: store.getUserSK(id)},
+			"email": &types.AttributeValueMemberS{Value: email},
+		},
+	})
+	if err != nil {
+		panic(err)
+	}
+
+	return email, nil
 }
 
-func (store UserStore) getUserSK(userId string) (_pk string) {
-	return userId
+func (store UserStore) getUserPK(userID string) (_pk string) {
+	return fmt.Sprintf("user/%s", userID)
+}
+
+func (store UserStore) getUserSK(userID string) (_pk string) {
+	return userID
 }

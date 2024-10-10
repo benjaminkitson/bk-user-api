@@ -22,7 +22,7 @@ func main() {
 		}
 		defer logger.Sync()
 
-		sdkConfig, err := config.LoadDefaultConfig(context.TODO())
+		sdkConfig, err := config.LoadDefaultConfig(ctx)
 		if err != nil {
 			logger.Error("Failed to intialise SDK config", zap.Error(err))
 			return events.APIGatewayProxyResponse{}, err

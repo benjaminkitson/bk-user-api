@@ -21,6 +21,7 @@ func NewStore(t *testing.T) UserStore {
 	return NewUserStore(client, testTableName)
 }
 
+// TODO: generally tidy these up a bit, make them a bit more robust
 func TestGetUserByID(t *testing.T) {
 	ctx := context.Background()
 	store := NewStore(t)
@@ -64,4 +65,19 @@ func TestPutUser(t *testing.T) {
 	if r.Email != email {
 		t.Fatalf("Expected username to be user2, got %v", r.Email)
 	}
+}
+
+func TestDeleteUser(t *testing.T) {
+	ctx := context.Background()
+	store := NewStore(t)
+	id := uuid.New().String()
+	email := "someother@gmail.com"
+
+	_, err := store.Put(ctx, models.User{Email: email}, id)
+	require.NoError(t, err)
+
+	s, err := store.Delete(ctx, id)
+	require.NoError(t, err)
+
+	assert.Equal(t, s, id)
 }

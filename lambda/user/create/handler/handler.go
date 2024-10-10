@@ -7,6 +7,7 @@ import (
 
 	"github.com/aws/aws-lambda-go/events"
 	"github.com/benjaminkitson/bk-user-api/models"
+	utils "github.com/benjaminkitson/bk-user-api/utils/lambda"
 	"github.com/google/uuid"
 	"go.uber.org/zap"
 )
@@ -29,16 +30,7 @@ func NewHandler(logger *zap.Logger, u handlerUserStore) (handler, error) {
 	}, nil
 }
 
-var Headers = map[string]string{
-	"Access-Control-Allow-Headers": "Content-Type",
-	"Access-Control-Allow-Origin":  "*",
-	"Access-Control-Allow-Methods": "OPTIONS,POST,GET",
-}
-
-const GenericError = "{\"message\": \"Something went wrong!\"}"
-
-// TODO: make distinction between 400 and 500 errors
-// TODO: understand how different methods are dealt with (post vs get etc)
+// TODO: for some error cases, specific messaging would be ideal
 // TODO: probably incorporate some sort of request body validation prior to calling cognito or whichever auth provider
 
 func (handler handler) Handle(ctx context.Context, request events.APIGatewayProxyRequest) (events.APIGatewayProxyResponse, error) {
@@ -47,44 +39,20 @@ func (handler handler) Handle(ctx context.Context, request events.APIGatewayProx
 	err := json.Unmarshal([]byte(request.Body), &bodyMap)
 	if err != nil {
 		handler.logger.Error("Error parsing request body", zap.Error(err))
-		return events.APIGatewayProxyResponse{
-			StatusCode: 500,
-			Headers:    Headers,
-			// Error body needed? Probably not
-		}, fmt.Errorf("error parsing request body")
+		return utils.RESPONSE_500, fmt.Errorf("error parsing request body")
 	}
 
-	if request.Path == "/user/create" {
-		u, err := handler.createUser(ctx, bodyMap)
-		if err != nil {
-			handler.logger.Error("Failed to get create new user", zap.Error(err))
-			return events.APIGatewayProxyResponse{
-				StatusCode: 500,
-				Headers:    Headers,
-				Body:       GenericError,
-			}, nil
-		}
-		r, err := json.Marshal(u)
-		if err != nil {
-			return events.APIGatewayProxyResponse{
-				StatusCode: 500,
-				Headers:    Headers,
-				Body:       GenericError,
-			}, nil
-		}
-		return events.APIGatewayProxyResponse{
-			StatusCode: 200,
-			Headers:    Headers,
-			Body:       string(r),
-		}, nil
+	u, err := handler.createUser(ctx, bodyMap)
+	if err != nil {
+		handler.logger.Error("Failed to get create new user", zap.Error(err))
+		return utils.RESPONSE_500, nil
 	}
+	r, err := json.Marshal(u)
+	if err != nil {
+		return utils.RESPONSE_500, nil
+	}
+	return utils.RESPONSE_200(string(r)), nil
 
-	handler.logger.Error("invalid path", zap.String("path", request.Path))
-	return events.APIGatewayProxyResponse{
-		StatusCode: 400,
-		Headers:    Headers,
-		Body:       "{\"message\": \"Invalid path\"}",
-	}, nil
 }
 
 func (handler handler) createUser(ctx context.Context, requestBody map[string]string) (models.User, error) {

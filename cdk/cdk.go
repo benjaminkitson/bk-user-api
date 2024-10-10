@@ -44,10 +44,13 @@ func NewStack(scope constructs.Construct, id string, props *StackProps) awscdk.S
 	fallbackLambdaProps := NewDefaultLambdaProps("../lambda/fallback")
 	fallbackLambda := awslambdago.NewGoFunction(stack, jsii.String("fallbackHandler"), fallbackLambdaProps)
 
-	userLambdaProps := NewDefaultLambdaProps("../lambda/user")
-	userLambda := awslambdago.NewGoFunction(stack, jsii.String("userHandler"), userLambdaProps)
+	createUserLambdaProps := NewDefaultLambdaProps("../lambda/user/create")
+	createUserLambda := awslambdago.NewGoFunction(stack, jsii.String("userHandler"), createUserLambdaProps)
 
-	userDb := awsdynamodb.NewTable(stack, jsii.String("userTable"), &awsdynamodb.TableProps{
+	deleteUserLambdaProps := NewDefaultLambdaProps("../lambda/user/delete")
+	deleteUserLambda := awslambdago.NewGoFunction(stack, jsii.String("userHandler"), deleteUserLambdaProps)
+
+	userDB := awsdynamodb.NewTable(stack, jsii.String("userTable"), &awsdynamodb.TableProps{
 		PartitionKey: &awsdynamodb.Attribute{
 			Name: jsii.String("_pk"),
 			Type: awsdynamodb.AttributeType_STRING,
@@ -56,7 +59,7 @@ func NewStack(scope constructs.Construct, id string, props *StackProps) awscdk.S
 		BillingMode: awsdynamodb.BillingMode_PAY_PER_REQUEST,
 	})
 
-	userDb.AddGlobalSecondaryIndex(&awsdynamodb.GlobalSecondaryIndexProps{
+	userDB.AddGlobalSecondaryIndex(&awsdynamodb.GlobalSecondaryIndexProps{
 		IndexName: jsii.String("email"),
 		PartitionKey: &awsdynamodb.Attribute{
 			Name: jsii.String("email"),
@@ -64,7 +67,8 @@ func NewStack(scope constructs.Construct, id string, props *StackProps) awscdk.S
 		},
 	})
 
-	userDb.GrantReadWriteData(userLambda)
+	userDB.GrantReadWriteData(createUserLambda)
+	userDB.GrantReadWriteData(deleteUserLambda)
 
 	userApi := awsapigateway.NewLambdaRestApi(stack, jsii.String("Endpoint"), &awsapigateway.LambdaRestApiProps{
 		DomainName: &awsapigateway.DomainNameOptions{
@@ -83,15 +87,15 @@ func NewStack(scope constructs.Construct, id string, props *StackProps) awscdk.S
 
 	users := userApi.Root().AddResource(jsii.String("user"), &awsapigateway.ResourceOptions{})
 
-	// users.AddMethod(jsii.String("ANY"), awsapigateway.NewLambdaIntegration(fallbackLambda, &awsapigateway.LambdaIntegrationOptions{}), &awsapigateway.MethodOptions{})
-
-	proxy := users.AddProxy(&awsapigateway.ProxyResourceOptions{
-		DefaultIntegration: awsapigateway.NewLambdaIntegration(fallbackLambda, &awsapigateway.LambdaIntegrationOptions{}),
-		AnyMethod:          jsii.Bool(false),
+	createUser := users.AddResource(jsii.String("create"), &awsapigateway.ResourceOptions{})
+	createUser.AddMethod(jsii.String("POST"), awsapigateway.NewLambdaIntegration(createUserLambda, &awsapigateway.LambdaIntegrationOptions{}), &awsapigateway.MethodOptions{
+		AuthorizationType: awsapigateway.AuthorizationType_IAM,
 	})
 
-	proxy.AddMethod(jsii.String("POST"), awsapigateway.NewLambdaIntegration(userLambda, &awsapigateway.LambdaIntegrationOptions{}), &awsapigateway.MethodOptions{
-		AuthorizationType: awsapigateway.AuthorizationType_IAM,
+	deleteUser := users.AddResource(jsii.String("delete"), &awsapigateway.ResourceOptions{})
+	deleteUser.AddMethod(jsii.String("POST"), awsapigateway.NewLambdaIntegration(deleteUserLambda, &awsapigateway.LambdaIntegrationOptions{}), &awsapigateway.MethodOptions{
+		// TODO: add authorisation after testing
+		// AuthorizationType: awsapigateway.AuthorizationType_IAM,
 	})
 
 	z := awsroute53.HostedZone_FromLookup(stack, jsii.String("zone"), &awsroute53.HostedZoneProviderProps{

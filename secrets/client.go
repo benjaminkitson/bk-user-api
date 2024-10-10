@@ -28,9 +28,10 @@ func NewSecretsClient(l *zap.Logger, sm *secretsmanager.Client) (SecretsClient, 
 
 }
 
+// TODO: pass context
 func (sc SecretsClient) GetSecret(name string) (string, error) {
 	sc.logger.Info("Getting secret")
-	sv, err := sc.smc.GetSecretValue(context.TODO(), &secretsmanager.GetSecretValueInput{
+	sv, err := sc.smc.GetSecretValue(context.Background(), &secretsmanager.GetSecretValueInput{
 		SecretId: &name,
 	})
 	if err != nil {
