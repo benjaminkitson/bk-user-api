@@ -45,10 +45,10 @@ func NewStack(scope constructs.Construct, id string, props *StackProps) awscdk.S
 	fallbackLambda := awslambdago.NewGoFunction(stack, jsii.String("fallbackHandler"), fallbackLambdaProps)
 
 	createUserLambdaProps := NewDefaultLambdaProps("../lambda/user/create")
-	createUserLambda := awslambdago.NewGoFunction(stack, jsii.String("userHandler"), createUserLambdaProps)
+	createUserLambda := awslambdago.NewGoFunction(stack, jsii.String("createUserHandler"), createUserLambdaProps)
 
 	deleteUserLambdaProps := NewDefaultLambdaProps("../lambda/user/delete")
-	deleteUserLambda := awslambdago.NewGoFunction(stack, jsii.String("userHandler"), deleteUserLambdaProps)
+	deleteUserLambda := awslambdago.NewGoFunction(stack, jsii.String("deleteUserHandler"), deleteUserLambdaProps)
 
 	userDB := awsdynamodb.NewTable(stack, jsii.String("userTable"), &awsdynamodb.TableProps{
 		PartitionKey: &awsdynamodb.Attribute{
