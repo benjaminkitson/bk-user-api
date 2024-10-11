@@ -109,25 +109,25 @@ func (c HTTPClient) CreateUser(ctx context.Context, email string) (models.User, 
 }
 
 // TODO: convert this to use the DELETE method
-func (c HTTPClient) DeleteUser(ctx context.Context, id string) (models.User, error) {
+func (c HTTPClient) DeleteUser(ctx context.Context, id string) (string, error) {
 	r := *c.baseURL
 	r.Path = path.Join(r.Path, "delete")
 	bodyMap := map[string]string{"id": id}
 	b, err := json.Marshal(bodyMap)
 	body := bytes.NewReader(b)
 	if err != nil {
-		return models.User{}, err
+		return "", err
 	}
 
 	c.logger.Info("building request")
 	req, err := http.NewRequestWithContext(ctx, http.MethodPost, r.String(), body)
 	if err != nil {
-		return models.User{}, err
+		return "", err
 	}
 
 	creds, err := c.awsConfig.Credentials.Retrieve(ctx)
 	if err != nil {
-		return models.User{}, err
+		return "", err
 	}
 
 	h := sha256.Sum256([]byte(b))
@@ -138,22 +138,23 @@ func (c HTTPClient) DeleteUser(ctx context.Context, id string) (models.User, err
 	res, err := c.client.Do(req)
 	if err != nil {
 		c.logger.Error("request error")
-		return models.User{}, err
+		return "", err
 	}
 	if res.StatusCode == 200 {
 		c.logger.Info("request success")
 		var u models.User
 		err = json.NewDecoder(res.Body).Decode(&u)
 		if err != nil {
-			return models.User{}, err
+			return "", err
 		}
-		return u, err
+		// TODO: get ID from user struct
+		return id, err
 	}
 	bodyRes, _ := io.ReadAll(res.Body)
 	if res.StatusCode == 400 || res.StatusCode == 500 {
 		c.logger.Error("error status code received", zap.Int("statusCode", res.StatusCode))
-		return models.User{}, ClientError{StatusCode: res.StatusCode, Message: string(bodyRes)}
+		return "", ClientError{StatusCode: res.StatusCode, Message: string(bodyRes)}
 	}
 	err = fmt.Errorf("api responded with unexpected status code %d, with body %s", res.StatusCode, string(bodyRes))
-	return models.User{}, err
+	return "", err
 }
