@@ -55,6 +55,10 @@ func NewStack(scope constructs.Construct, id string, props *StackProps) awscdk.S
 			Name: jsii.String("_pk"),
 			Type: awsdynamodb.AttributeType_STRING,
 		},
+		SortKey: &awsdynamodb.Attribute{
+			Name: jsii.String("_sk"),
+			Type: awsdynamodb.AttributeType_STRING,
+		},
 		TableName:   jsii.String("userTable"),
 		BillingMode: awsdynamodb.BillingMode_PAY_PER_REQUEST,
 	})
@@ -94,8 +98,7 @@ func NewStack(scope constructs.Construct, id string, props *StackProps) awscdk.S
 
 	deleteUser := users.AddResource(jsii.String("delete"), &awsapigateway.ResourceOptions{})
 	deleteUser.AddMethod(jsii.String("POST"), awsapigateway.NewLambdaIntegration(deleteUserLambda, &awsapigateway.LambdaIntegrationOptions{}), &awsapigateway.MethodOptions{
-		// TODO: add authorisation after testing
-		// AuthorizationType: awsapigateway.AuthorizationType_IAM,
+		AuthorizationType: awsapigateway.AuthorizationType_IAM,
 	})
 
 	z := awsroute53.HostedZone_FromLookup(stack, jsii.String("zone"), &awsroute53.HostedZoneProviderProps{

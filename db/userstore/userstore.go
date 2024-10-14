@@ -119,7 +119,7 @@ func (store UserStore) Delete(ctx context.Context, id string) (string, error) {
 		},
 	})
 	if err != nil {
-		panic(err)
+		return "", err
 	}
 
 	return id, nil

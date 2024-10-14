@@ -38,13 +38,21 @@ func (handler handler) Handle(ctx context.Context, request events.APIGatewayProx
 		return utils.RESPONSE_500, fmt.Errorf("error parsing request body")
 	}
 
+	handler.logger.Info("attempting user deletion", zap.String("userID", bodyMap["id"]))
 	id, err := handler.userStore.Delete(ctx, bodyMap["id"])
 	if err != nil {
 		handler.logger.Error("error deleting user", zap.String("userID", bodyMap["id"]), zap.Error(err))
 		return utils.RESPONSE_500, nil
 	}
+	handler.logger.Info("successfully deleted user from db", zap.String("userID", bodyMap["id"]))
 
-	s := fmt.Sprintf("successfully deleted user %v", id)
+	s := map[string]string{
+		"id": id,
+	}
+	r, err := json.Marshal(s)
+	if err != nil {
+		return utils.RESPONSE_500, nil
+	}
 
-	return utils.RESPONSE_200(s), nil
+	return utils.RESPONSE_200(string(r)), nil
 }
