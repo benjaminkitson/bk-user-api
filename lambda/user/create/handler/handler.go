@@ -20,7 +20,7 @@ type handler struct {
 type handlerUserStore interface {
 	GetByID(ctx context.Context, id string) (models.User, error)
 	GetByEmail(ctx context.Context, email string) (models.User, error)
-	Put(ctx context.Context, record models.User, id string) (models.User, error)
+	Put(ctx context.Context, record models.User) (models.User, error)
 }
 
 func NewHandler(logger *zap.Logger, u handlerUserStore) (handler, error) {
@@ -59,7 +59,8 @@ func (handler handler) createUser(ctx context.Context, requestBody map[string]st
 	id := uuid.New().String()
 
 	user := models.User{
-		Email: requestBody["email"],
+		Email:  requestBody["email"],
+		UserID: id,
 	}
 
 	c, err := handler.userStore.GetByEmail(ctx, requestBody["email"])
@@ -73,7 +74,7 @@ func (handler handler) createUser(ctx context.Context, requestBody map[string]st
 		return models.User{}, fmt.Errorf("user with email already exists")
 	}
 
-	u, err := handler.userStore.Put(ctx, user, id)
+	u, err := handler.userStore.Put(ctx, user)
 	if err != nil {
 		return models.User{}, err
 	}

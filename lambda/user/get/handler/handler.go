@@ -19,7 +19,6 @@ type handler struct {
 type handlerUserStore interface {
 	GetByID(ctx context.Context, id string) (models.User, error)
 	GetByEmail(ctx context.Context, email string) (models.User, error)
-	Put(ctx context.Context, record models.User, id string) (models.User, error)
 }
 
 func NewHandler(logger *zap.Logger, u handlerUserStore) (handler, error) {

@@ -55,18 +55,18 @@ func NewStack(scope constructs.Construct, id string, props *StackProps) awscdk.S
 			Name: jsii.String("_pk"),
 			Type: awsdynamodb.AttributeType_STRING,
 		},
-		SortKey: &awsdynamodb.Attribute{
-			Name: jsii.String("_sk"),
-			Type: awsdynamodb.AttributeType_STRING,
-		},
+		// SortKey: &awsdynamodb.Attribute{
+		// 	Name: jsii.String("_sk"),
+		// 	Type: awsdynamodb.AttributeType_STRING,
+		// },
 		TableName:   jsii.String("userTable"),
 		BillingMode: awsdynamodb.BillingMode_PAY_PER_REQUEST,
 	})
 
 	userDB.AddGlobalSecondaryIndex(&awsdynamodb.GlobalSecondaryIndexProps{
-		IndexName: jsii.String("email"),
+		IndexName: jsii.String("gsi1"),
 		PartitionKey: &awsdynamodb.Attribute{
-			Name: jsii.String("email"),
+			Name: jsii.String("_gsi1"),
 			Type: awsdynamodb.AttributeType_STRING,
 		},
 	})

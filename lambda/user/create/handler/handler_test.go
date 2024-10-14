@@ -23,7 +23,7 @@ func (m mockUserStore) GetByEmail(ctx context.Context, email string) (user model
 	return models.User{}, nil
 }
 
-func (m mockUserStore) Put(ctx context.Context, record models.User, id string) (models.User, error) {
+func (m mockUserStore) Put(ctx context.Context, record models.User) (models.User, error) {
 	if m.isError {
 		return models.User{}, fmt.Errorf("UserStore put error!")
 	}

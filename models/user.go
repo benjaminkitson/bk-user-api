@@ -1,6 +1,6 @@
 package models
 
 type User struct {
-	// TODO: ID
-	Email string `json:"email" dynamodbav:"email"`
+	UserID string `json:"userID" dynamodbav:"userID"`
+	Email  string `json:"email" dynamodbav:"email"`
 }

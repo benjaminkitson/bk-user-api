@@ -44,7 +44,7 @@ func TestGetUserByEmail(t *testing.T) {
 		t.Fatalf("Expected email to be benk13@gmail.com, got %v", r.Email)
 	}
 
-	_, err = store.GetByEmail(ctx, "nonexistent@gmail.com")
+	// _, err = store.GetByEmail(ctx, "nonexistent@gmail.com")
 
 }
 
@@ -54,7 +54,7 @@ func TestPutUser(t *testing.T) {
 	id := uuid.New().String()
 	email := "someother@gmail.com"
 
-	u, err := store.Put(ctx, models.User{Email: email}, id)
+	u, err := store.Put(ctx, models.User{Email: email, UserID: id})
 	require.NoError(t, err)
 
 	r, err := store.GetByID(ctx, id)
@@ -73,7 +73,7 @@ func TestDeleteUser(t *testing.T) {
 	id := uuid.New().String()
 	email := "someother@gmail.com"
 
-	_, err := store.Put(ctx, models.User{Email: email}, id)
+	_, err := store.Put(ctx, models.User{Email: email, UserID: id})
 	require.NoError(t, err)
 
 	s, err := store.Delete(ctx, id)

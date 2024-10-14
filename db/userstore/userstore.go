@@ -13,8 +13,9 @@ import (
 )
 
 const (
-	PKKey string = "_pk"
-	SKKey string = "_sk"
+	PKKey   string = "_pk"
+	GSI1Key string = "_gsi1"
+	// SKKey string = "_sk"
 )
 
 type UserStore struct {
@@ -32,7 +33,7 @@ func NewUserStore(client *dynamodb.Client, tableName string) UserStore {
 func (store UserStore) GetByID(ctx context.Context, id string) (models.User, error) {
 	key := map[string]types.AttributeValue{
 		PKKey: &types.AttributeValueMemberS{Value: store.getUserPK(id)},
-		SKKey: &types.AttributeValueMemberS{Value: store.getUserSK(id)},
+		// SKKey: &types.AttributeValueMemberS{Value: store.getUserSK(id)},
 	}
 	query := dynamodb.GetItemInput{
 		TableName:      &store.tableName,
@@ -61,10 +62,13 @@ func (store UserStore) GetByID(ctx context.Context, id string) (models.User, err
 func (store UserStore) GetByEmail(ctx context.Context, email string) (models.User, error) {
 	out, err := store.client.Query(ctx, &dynamodb.QueryInput{
 		TableName:              &store.tableName,
-		IndexName:              aws.String("email"),
-		KeyConditionExpression: aws.String("email = :email"),
+		IndexName:              aws.String("gsi1"),
+		KeyConditionExpression: aws.String("#gsi1 = :gsi1"),
+		ExpressionAttributeNames: map[string]string{
+			"#gsi1": "_gsi1",
+		},
 		ExpressionAttributeValues: map[string]types.AttributeValue{
-			":email": &types.AttributeValueMemberS{Value: email},
+			":gsi1": &types.AttributeValueMemberS{Value: store.getUserGSI1(email)},
 		},
 	})
 	if err != nil {
@@ -88,14 +92,15 @@ func (store UserStore) GetByEmail(ctx context.Context, email string) (models.Use
 	return user, nil
 }
 
-func (store UserStore) Put(ctx context.Context, record models.User, id string) (models.User, error) {
+func (store UserStore) Put(ctx context.Context, record models.User) (models.User, error) {
 	item, err := attributevalue.MarshalMap(record)
 	if err != nil {
 		return models.User{}, errors.Wrap(err, "an error ocurred marshaling the record")
 	}
 
-	item[PKKey] = &types.AttributeValueMemberS{Value: store.getUserPK(id)}
-	item[SKKey] = &types.AttributeValueMemberS{Value: store.getUserSK(id)}
+	item[PKKey] = &types.AttributeValueMemberS{Value: store.getUserPK(record.UserID)}
+	item[GSI1Key] = &types.AttributeValueMemberS{Value: store.getUserPK(record.Email)}
+	// item[SKKey] = &types.AttributeValueMemberS{Value: store.getUserSK(id)}
 
 	_, err = store.client.PutItem(ctx, &dynamodb.PutItemInput{
 		Item:      item,
@@ -115,7 +120,7 @@ func (store UserStore) Delete(ctx context.Context, id string) (string, error) {
 		TableName: aws.String(store.tableName),
 		Key: map[string]types.AttributeValue{
 			PKKey: &types.AttributeValueMemberS{Value: store.getUserPK(id)},
-			SKKey: &types.AttributeValueMemberS{Value: store.getUserSK(id)},
+			// SKKey: &types.AttributeValueMemberS{Value: store.getUserSK(id)},
 		},
 	})
 	if err != nil {
@@ -127,6 +132,10 @@ func (store UserStore) Delete(ctx context.Context, id string) (string, error) {
 
 func (store UserStore) getUserPK(userID string) (_pk string) {
 	return fmt.Sprintf("user/%s", userID)
+}
+
+func (store UserStore) getUserGSI1(email string) (gsi1 string) {
+	return fmt.Sprintf("email/%s", email)
 }
 
 func (store UserStore) getUserSK(userID string) (_pk string) {

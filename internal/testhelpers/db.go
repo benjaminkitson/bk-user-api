@@ -26,12 +26,12 @@ func (d DBTester) CreateLocalTable(t *testing.T, tableName string) string {
 				AttributeName: aws.String("_pk"),
 				AttributeType: types.ScalarAttributeTypeS,
 			},
+			// {
+			// 	AttributeName: aws.String("_sk"),
+			// 	AttributeType: types.ScalarAttributeTypeS,
+			// },
 			{
-				AttributeName: aws.String("_sk"),
-				AttributeType: types.ScalarAttributeTypeS,
-			},
-			{
-				AttributeName: aws.String("email"),
+				AttributeName: aws.String("_gsi1"),
 				AttributeType: types.ScalarAttributeTypeS,
 			},
 		},
@@ -40,19 +40,19 @@ func (d DBTester) CreateLocalTable(t *testing.T, tableName string) string {
 				AttributeName: aws.String("_pk"),
 				KeyType:       types.KeyTypeHash,
 			},
-			{
-				AttributeName: aws.String("_sk"),
-				KeyType:       types.KeyTypeRange,
-			},
+			// {
+			// 	AttributeName: aws.String("_sk"),
+			// 	KeyType:       types.KeyTypeRange,
+			// },
 		},
 		BillingMode: types.BillingModePayPerRequest,
 		TableName:   aws.String(tableName),
 		GlobalSecondaryIndexes: []types.GlobalSecondaryIndex{
 			{
-				IndexName: aws.String("email"),
+				IndexName: aws.String("gsi1"),
 				KeySchema: []types.KeySchemaElement{
 					{
-						AttributeName: aws.String("email"),
+						AttributeName: aws.String("_gsi1"),
 						KeyType:       types.KeyTypeHash,
 					},
 				},
@@ -64,10 +64,9 @@ func (d DBTester) CreateLocalTable(t *testing.T, tableName string) string {
 		t.Fatalf("failed to create local table: %v", err)
 	}
 
-	userID := "12345"
-
 	testUser := models.User{
-		Email: "benk13@gmail.com",
+		Email:  "benk13@gmail.com",
+		UserID: "12345",
 	}
 
 	item, err := attributevalue.MarshalMap(testUser)
@@ -75,8 +74,9 @@ func (d DBTester) CreateLocalTable(t *testing.T, tableName string) string {
 		t.Fatalf("an error ocurred marshaling the record: %v", err)
 	}
 
-	item["_pk"] = &types.AttributeValueMemberS{Value: d.getUserPK(userID)}
-	item["_sk"] = &types.AttributeValueMemberS{Value: d.getUserSK(userID)}
+	item["_pk"] = &types.AttributeValueMemberS{Value: d.getUserPK(testUser.UserID)}
+	item["_gsi1"] = &types.AttributeValueMemberS{Value: d.getUserGSI1(testUser.Email)}
+	// item["_sk"] = &types.AttributeValueMemberS{Value: d.getUserSK(userID)}
 
 	_, err = d.GetTestClient().PutItem(context.Background(), &dynamodb.PutItemInput{
 		Item:      item,
@@ -91,6 +91,10 @@ func (d DBTester) CreateLocalTable(t *testing.T, tableName string) string {
 
 func (store DBTester) getUserPK(userId string) (_pk string) {
 	return fmt.Sprintf("user/%s", userId)
+}
+
+func (store DBTester) getUserGSI1(email string) (gsi1 string) {
+	return fmt.Sprintf("email/%s", email)
 }
 
 func (store DBTester) getUserSK(userId string) (_pk string) {
